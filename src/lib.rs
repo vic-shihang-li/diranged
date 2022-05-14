@@ -42,9 +42,9 @@ impl DisjointRange {
             Err(e) => Err(AddError::BadRange(e)),
             Ok(range_to_insert) => {
                 for (i, range) in self.ranges.iter().enumerate() {
-                    match range.compare_with(&range_to_insert) {
-                        RangeCompareResult::LessThanNoOverlap => continue,
-                        RangeCompareResult::GreaterNoOverlap => {
+                    match range_to_insert.compare_with(&range) {
+                        RangeCompareResult::GreaterNoOverlap => continue,
+                        RangeCompareResult::LessThanNoOverlap => {
                             self.ranges.insert(i, range_to_insert);
                             return Ok(());
                         }
@@ -94,7 +94,7 @@ impl<'a> Iterator for DisjointRangeIter<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum RangeCompareResult {
     LessThanNoOverlap,
     OverlapUpper,
@@ -174,7 +174,7 @@ impl Range {
             // self:  [....]
             // other:    [.......]
             if other.min_incl <= self.max_incl && self.max_incl < other.max_incl {
-                return RangeCompareResult::OverlapUpper;
+                return RangeCompareResult::OverlapLower;
             }
             // self:  [...........]
             // other:    [......]
@@ -206,7 +206,7 @@ impl Range {
             // self:        [.....]
             // other: [.......]
             if other.max_incl >= self.min_incl && other.max_incl < self.max_incl {
-                return RangeCompareResult::OverlapLower;
+                return RangeCompareResult::OverlapUpper;
             }
             // self:        [.....]
             // other: [............]
@@ -233,6 +233,21 @@ mod tests {
         let mut dr = DisjointRange::new(RangeMode::Inclusive);
         insert_ranges(&mut dr, &sorted_sequence);
         assert_range_sequence(&dr, &sorted_sequence);
+    }
+
+    #[test]
+    fn add_overlapping_range_errs() {
+        let mut dr = DisjointRange::new(RangeMode::Inclusive);
+        dr.add(100, 200).unwrap();
+        assert_insert_overlaps(dr.add(90, 111), RangeCompareResult::OverlapLower);
+        assert_insert_overlaps(dr.add(100, 123), RangeCompareResult::Contained);
+        assert_insert_overlaps(dr.add(140, 160), RangeCompareResult::Contained);
+        assert_insert_overlaps(dr.add(188, 200), RangeCompareResult::Contained);
+        assert_insert_overlaps(dr.add(100, 200), RangeCompareResult::Equal);
+        assert_insert_overlaps(dr.add(100, 300), RangeCompareResult::Contains);
+        assert_insert_overlaps(dr.add(73, 2000), RangeCompareResult::Contains);
+        assert_insert_overlaps(dr.add(180, 222), RangeCompareResult::OverlapUpper);
+        assert_insert_overlaps(dr.add(200, 222), RangeCompareResult::OverlapUpper);
     }
 
     fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
@@ -272,5 +287,15 @@ mod tests {
     fn assert_range_min_max(range: &Range, min: usize, max: usize) {
         assert_eq!(range.min(), min);
         assert_eq!(range.max(), max);
+    }
+
+    fn assert_insert_overlaps(add_result: Result<(), AddError>, kind: RangeCompareResult) {
+        match add_result {
+            Ok(_) => panic!("expected add to fail"),
+            Err(e) => match e {
+                AddError::OverlapRange(x) => assert_eq!(x.kind, kind),
+                _ => panic!("expected overlap range error, got {:?}", e),
+            },
+        }
     }
 }
