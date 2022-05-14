@@ -262,9 +262,37 @@ mod tests {
         }
     }
 
+    #[test]
+    fn add_unordered_ranges() {
+        let mut dr = DisjointRange::new(RangeMode::Inclusive);
+        insert_ranges(
+            &mut dr,
+            &[
+                [100, 200],
+                [30, 50],
+                [1, 2],
+                [60, 66],
+                [500, 555],
+                [343, 444],
+            ],
+        );
+        assert_range_sequence(
+            &dr,
+            &[
+                [1, 2],
+                [30, 50],
+                [60, 66],
+                [100, 200],
+                [343, 444],
+                [500, 555],
+            ],
+        );
+    }
+
     fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
         seq.iter().for_each(|[min, max]| {
-            dr.add(*min, *max).expect("disjoint range insertion failed");
+            dr.add(*min, *max)
+                .expect(format!("failed to insert min: {}, max: {}", min, max).as_str());
         })
     }
 
