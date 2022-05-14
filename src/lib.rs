@@ -289,6 +289,37 @@ mod tests {
         );
     }
 
+    #[test]
+    fn end_exclusive_dr() {
+        let mut dr = DisjointRange::new(RangeMode::EndExclusive);
+        insert_ranges(
+            &mut dr,
+            &[
+                [100, 200],
+                [99, 100],
+                [98, 99],
+                [30, 50],
+                [50, 70],
+                [70, 90],
+                [211, 212],
+                [209, 211],
+            ],
+        );
+        assert_range_sequence(
+            &dr,
+            &[
+                [30, 50],
+                [50, 70],
+                [70, 90],
+                [98, 99],
+                [99, 100],
+                [100, 200],
+                [209, 211],
+                [211, 212],
+            ],
+        );
+    }
+
     fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
         seq.iter().for_each(|[min, max]| {
             dr.add(*min, *max)
