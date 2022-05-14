@@ -223,18 +223,50 @@ mod tests {
 
     #[test]
     fn create_basic_dr() {
+        let sorted_sequence = [
+            [100, 200],
+            [222, 235],
+            [20000, 22322],
+            [34330, 50000],
+            [60000, 700000],
+        ];
         let mut dr = DisjointRange::new(RangeMode::Inclusive);
-        dr.add(100, 200).unwrap();
-        dr.add(222, 235).unwrap();
-        dr.add(4000, 5000).unwrap();
+        insert_ranges(&mut dr, &sorted_sequence);
+        assert_range_sequence(&dr, &sorted_sequence);
+    }
 
-        let mut iter = dr.iter();
-        let r1 = iter.next().unwrap();
-        assert_range_min_max(&r1, 100, 200);
-        let r2 = iter.next().unwrap();
-        assert_range_min_max(&r2, 222, 235);
-        let r3 = iter.next().unwrap();
-        assert_range_min_max(&r3, 4000, 5000);
+    fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
+        seq.iter().for_each(|[min, max]| {
+            dr.add(*min, *max).expect("disjoint range insertion failed");
+        })
+    }
+
+    fn assert_range_sequence(dr: &DisjointRange, seq: &[[usize; 2]]) {
+        let mut dr_iter = dr.iter();
+        let mut deq_iter = seq.iter();
+
+        loop {
+            match dr_iter.next() {
+                None => match deq_iter.next() {
+                    None => break,
+                    Some(r) => panic!(
+                        "Reached disjoint range end while the expected \
+                               next range is {:?}",
+                        r
+                    ),
+                },
+                Some(got) => match deq_iter.next() {
+                    None => panic!(
+                        "Disjoint range longer than expected; \
+                                   got {:?} while expected sequence ended",
+                        got
+                    ),
+                    Some([expected_min, expected_max]) => {
+                        assert_range_min_max(&got, *expected_min, *expected_max)
+                    }
+                },
+            }
+        }
     }
 
     fn assert_range_min_max(range: &Range, min: usize, max: usize) {
