@@ -7,7 +7,7 @@ pub struct OverlapContext {
 #[derive(Debug)]
 pub enum AddError {
     OverlapRange(OverlapContext),
-    BadRange(BadRange),
+    BadRange,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -39,7 +39,7 @@ impl DisjointRange {
 
     pub fn add(self: &mut Self, min: usize, max: usize) -> Result<(), AddError> {
         match Range::new(min, max, self.mode) {
-            Err(e) => Err(AddError::BadRange(e)),
+            Err(_) => Err(AddError::BadRange),
             Ok(range_to_insert) => {
                 for (i, range) in self.ranges.iter().enumerate() {
                     match range_to_insert.compare_with(&range) {
@@ -248,6 +248,18 @@ mod tests {
         assert_insert_overlaps(dr.add(73, 2000), RangeCompareResult::Contains);
         assert_insert_overlaps(dr.add(180, 222), RangeCompareResult::OverlapUpper);
         assert_insert_overlaps(dr.add(200, 222), RangeCompareResult::OverlapUpper);
+    }
+
+    #[test]
+    fn add_invalid_range_errs() {
+        let mut dr = DisjointRange::new(RangeMode::Inclusive);
+        match dr.add(50, 30) {
+            Ok(_) => panic!("add bad range should fail"),
+            Err(e) => match e {
+                AddError::BadRange => (),
+                _ => panic!("expected bad range, got {:?}", e),
+            },
+        }
     }
 
     fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
