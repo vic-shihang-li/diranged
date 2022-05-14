@@ -251,15 +251,35 @@ mod tests {
     }
 
     #[test]
-    fn add_invalid_range_errs() {
+    fn add_invalid_inclusive_range() {
         let mut dr = DisjointRange::new(RangeMode::Inclusive);
-        match dr.add(50, 30) {
-            Ok(_) => panic!("add bad range should fail"),
-            Err(e) => match e {
-                AddError::BadRange => (),
-                _ => panic!("expected bad range, got {:?}", e),
-            },
-        }
+        assert_add_bad_range_errs(dr.add(100, 80));
+        assert!(dr.add(50, 50).is_ok());
+    }
+
+    #[test]
+    fn add_invalid_end_exclusive_range() {
+        let mut dr = DisjointRange::new(RangeMode::EndExclusive);
+        assert!(dr.add(9, 10).is_ok());
+        assert_add_bad_range_errs(dr.add(100, 80));
+        assert_add_bad_range_errs(dr.add(50, 50));
+    }
+
+    #[test]
+    fn add_invalid_start_exclusive_range() {
+        let mut dr = DisjointRange::new(RangeMode::StartExclusive);
+        assert!(dr.add(9, 10).is_ok());
+        assert_add_bad_range_errs(dr.add(100, 80));
+        assert_add_bad_range_errs(dr.add(50, 50));
+    }
+
+    #[test]
+    fn add_invalid_exclusive_range() {
+        let mut dr = DisjointRange::new(RangeMode::Exclusive);
+        assert_add_bad_range_errs(dr.add(100, 80));
+        assert_add_bad_range_errs(dr.add(50, 50));
+        assert_add_bad_range_errs(dr.add(49, 50));
+        assert!(dr.add(48, 50).is_ok());
     }
 
     #[test]
@@ -358,6 +378,16 @@ mod tests {
     fn assert_range_min_max(range: &Range, min: usize, max: usize) {
         assert_eq!(range.min(), min);
         assert_eq!(range.max(), max);
+    }
+
+    fn assert_add_bad_range_errs(add_result: Result<(), AddError>) {
+        match add_result {
+            Ok(_) => panic!("add bad range should fail"),
+            Err(e) => match e {
+                AddError::BadRange => (),
+                _ => panic!("expected bad range, got {:?}", e),
+            },
+        }
     }
 
     fn assert_insert_overlaps(add_result: Result<(), AddError>, kind: RangeCompareResult) {
