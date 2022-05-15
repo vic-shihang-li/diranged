@@ -573,4 +573,14 @@ mod tests {
             _ => TestResult::discard(),
         }
     }
+
+    #[quickcheck]
+    fn test_range_compare_greater_no_overlap(r1: Range, r2: Range) -> TestResult {
+        match Range::compare(&r1, &r2) {
+            RangeCompareResult::GreaterNoOverlap => {
+                TestResult::from_bool(r1.min_incl > r2.max_incl)
+            }
+            _ => TestResult::discard(),
+        }
+    }
 }
