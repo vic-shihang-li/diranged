@@ -348,7 +348,7 @@ impl Range {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use quickcheck::{quickcheck, Arbitrary, Gen};
+    use quickcheck::{quickcheck, Arbitrary, Gen, TestResult};
     use rand::Rng;
 
     impl Arbitrary for RangeMode {
@@ -430,14 +430,14 @@ mod tests {
 
     #[test]
     fn verify_inclusive_bounds() {
-        fn prop_max_incl_ge_min_incl(min: usize, max: usize, mode: RangeMode) -> bool {
-            if let Ok(r) = Range::new(min, max, mode) {
-                return r.max_incl >= r.min_incl;
+        fn prop_max_incl_ge_min_incl(min: usize, max: usize, mode: RangeMode) -> TestResult {
+            match Range::new(min, max, mode) {
+                Ok(r) => TestResult::from_bool(r.max_incl >= r.min_incl),
+                Err(_) => TestResult::discard(),
             }
-            true
         }
 
-        quickcheck(prop_max_incl_ge_min_incl as fn(usize, usize, RangeMode) -> bool);
+        quickcheck(prop_max_incl_ge_min_incl as fn(usize, usize, RangeMode) -> TestResult);
     }
 
     #[test]
@@ -447,15 +447,18 @@ mod tests {
             max: usize,
             mode: RangeMode,
             value: usize,
-        ) -> bool {
+        ) -> TestResult {
             match Range::new(min, max, mode) {
-                Err(_) => true,
-                Ok(r) => r.includes(value) == (value >= r.min_incl && value <= r.max_incl),
+                Err(_) => TestResult::discard(),
+                Ok(r) => TestResult::from_bool(
+                    r.includes(value) == (value >= r.min_incl && value <= r.max_incl),
+                ),
             }
         }
 
         quickcheck(
-            prop_included_value_within_incl_bounds as fn(usize, usize, RangeMode, usize) -> bool,
+            prop_included_value_within_incl_bounds
+                as fn(usize, usize, RangeMode, usize) -> TestResult,
         );
     }
 }
