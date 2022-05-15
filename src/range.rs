@@ -348,7 +348,21 @@ impl Range {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use quickcheck::quickcheck;
+    use quickcheck::{quickcheck, Arbitrary, Gen};
+    use rand::Rng;
+
+    impl Arbitrary for RangeMode {
+        fn arbitrary(_g: &mut Gen) -> RangeMode {
+            let num: usize = rand::thread_rng().gen_range(0..3);
+            match num {
+                0 => RangeMode::Inclusive,
+                1 => RangeMode::Exclusive,
+                2 => RangeMode::StartExclusive,
+                3 => RangeMode::EndExclusive,
+                _ => unreachable!(),
+            }
+        }
+    }
 
     #[test]
     fn create_inclusive_ranges() {
@@ -412,5 +426,17 @@ mod tests {
             BadRange::InclusiveMaxUnderflows
         );
         quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn verify_inclusive_bounds() {
+        fn prop_max_incl_ge_min_incl(min: usize, max: usize, mode: RangeMode) -> bool {
+            if let Ok(r) = Range::new(min, max, mode) {
+                return r.max_incl >= r.min_incl;
+            }
+            true
+        }
+
+        quickcheck(prop_max_incl_ge_min_incl as fn(usize, usize, RangeMode) -> bool);
     }
 }
