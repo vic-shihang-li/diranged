@@ -364,6 +364,21 @@ mod tests {
         }
     }
 
+    impl Arbitrary for Range {
+        fn arbitrary(g: &mut Gen) -> Range {
+            loop {
+                match Range::new(
+                    usize::arbitrary(g),
+                    usize::arbitrary(g),
+                    RangeMode::arbitrary(g),
+                ) {
+                    Err(_) => continue,
+                    Ok(r) => return r,
+                };
+            }
+        }
+    }
+
     #[test]
     fn create_inclusive_ranges() {
         fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
@@ -460,5 +475,25 @@ mod tests {
             prop_included_value_within_incl_bounds
                 as fn(usize, usize, RangeMode, usize) -> TestResult,
         );
+    }
+
+    #[test]
+    fn test_range_compare_eq() {
+        fn prop_comp_eq(r1: Range, r2: Range) -> TestResult {
+            match Range::compare(&r1, &r2) {
+                RangeCompareResult::Equal => {
+                    let valid = r1.min_incl == r2.min_incl && r1.max_incl == r2.max_incl;
+                    TestResult::from_bool(valid)
+                }
+                _ => TestResult::discard(),
+            }
+        }
+
+        fn prop_range_eq_self(r: Range) -> bool {
+            Range::compare(&r, &r) == RangeCompareResult::Equal
+        }
+
+        quickcheck(prop_range_eq_self as fn(Range) -> bool);
+        quickcheck(prop_comp_eq as fn(Range, Range) -> TestResult);
     }
 }
