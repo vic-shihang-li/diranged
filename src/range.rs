@@ -165,10 +165,14 @@ pub enum RangeCompareResult {
 }
 
 /// An enumeration of possible bad [`Range`] initialization arguments.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BadRange {
     /// Errs when the provided min value is greater than the max value.
     MinGreaterThanMax,
+    /// Errs when calculating the inclusive min overflows
+    InclusiveMinOverflows,
+    /// Errs when calculating the inclusive max underflows
+    InclusiveMaxUnderflows,
 }
 
 /// A range is a pair of min and max values.
@@ -216,10 +220,45 @@ impl Range {
 
         match mode {
             RangeMode::Inclusive => new_inclusive(min, max),
-            RangeMode::StartExclusive => new_inclusive(min + 1, max),
-            RangeMode::EndExclusive => new_inclusive(min, max - 1),
-            RangeMode::Exclusive => new_inclusive(min + 1, max - 1),
+            RangeMode::StartExclusive => match min {
+                usize::MAX => Err(BadRange::InclusiveMinOverflows),
+                _ => new_inclusive(min + 1, max),
+            },
+            RangeMode::EndExclusive => match max {
+                0 => Err(BadRange::InclusiveMaxUnderflows),
+                _ => new_inclusive(min, max - 1),
+            },
+            RangeMode::Exclusive => match min {
+                usize::MAX => Err(BadRange::InclusiveMinOverflows),
+                _ => match max {
+                    0 => Err(BadRange::InclusiveMaxUnderflows),
+                    _ => new_inclusive(min + 1, max - 1),
+                },
+            },
         }
+    }
+
+    /// Constructs a new [`Range`] where both `min` and `max` are part of the
+    /// range.
+    pub fn new_inclusive(min: usize, max: usize) -> Result<Self, BadRange> {
+        Range::new(min, max, RangeMode::Inclusive)
+    }
+
+    /// Constructs a new [`Range`] where neither `min` nor `max` are part of
+    /// the range.
+    pub fn new_exclusive(min: usize, max: usize) -> Result<Self, BadRange> {
+        Range::new(min, max, RangeMode::Exclusive)
+    }
+
+    /// Constructs a new [`Range`] where `min` is not part of the range, but
+    /// `max` is.
+    pub fn new_start_exclusive(min: usize, max: usize) -> Result<Self, BadRange> {
+        Range::new(min, max, RangeMode::StartExclusive)
+    }
+
+    /// Constructs a new [`Range`] where `min` is part of the range, but not `max`.
+    pub fn new_end_exclusive(min: usize, max: usize) -> Result<Self, BadRange> {
+        Range::new(min, max, RangeMode::EndExclusive)
     }
 
     /// Retrieves the min value of this range.
@@ -303,5 +342,75 @@ impl Range {
         }
 
         unreachable!("Non-exhaustive comparison!")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quickcheck::quickcheck;
+
+    #[test]
+    fn create_inclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match Range::new_inclusive(min, max) {
+                Ok(_) => min <= max,
+                Err(_) => min > max,
+            }
+        }
+
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn create_exclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match Range::new_exclusive(min, max) {
+                Ok(_) => min + 1 <= max - 1,
+                Err(_) => max < 2 || min > max - 2,
+            }
+        }
+
+        assert_eq!(
+            Range::new_exclusive(usize::MAX, 1).unwrap_err(),
+            BadRange::InclusiveMinOverflows
+        );
+        assert_eq!(
+            Range::new_exclusive(0, 0).unwrap_err(),
+            BadRange::InclusiveMaxUnderflows
+        );
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn create_start_exclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match Range::new_start_exclusive(min, max) {
+                Ok(_) => min + 1 <= max,
+                Err(_) => min == usize::MAX || min + 1 > max,
+            }
+        }
+
+        assert_eq!(
+            Range::new_start_exclusive(usize::MAX, 1).unwrap_err(),
+            BadRange::InclusiveMinOverflows
+        );
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn create_end_exclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match Range::new_end_exclusive(min, max) {
+                Ok(_) => min <= max - 1,
+                Err(_) => max == 0 || min > max - 1,
+            }
+        }
+
+        assert_eq!(
+            Range::new_end_exclusive(0, 0).unwrap_err(),
+            BadRange::InclusiveMaxUnderflows
+        );
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
     }
 }
