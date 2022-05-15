@@ -2,6 +2,12 @@
 
 #![warn(missing_docs)]
 
+#[cfg(test)]
+extern crate quickcheck;
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 mod range;
 pub use range::{Range, RangeCompareResult};
 
