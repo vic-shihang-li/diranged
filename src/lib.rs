@@ -97,8 +97,15 @@ impl DisjointRange {
     }
 
     /// Checks whether the given value falls into one of the ranges.
-    pub fn includes(&mut self, value: usize) -> bool {
-        self.ranges.iter().find(|r| r.includes(value)).is_some()
+    pub fn includes(&self, value: usize) -> bool {
+        self.lookup(value).is_some()
+    }
+
+    /// Checks if the data structure contains the provided value.
+    ///
+    /// If yes, return the range that contains this value.
+    pub fn lookup(&self, value: usize) -> Option<&Range> {
+        self.ranges.iter().find(|r| r.includes(value))
     }
 
     /// Iterates this [`DisjointRange`] in range-ascending order.
@@ -134,7 +141,7 @@ impl<'a> Iterator for DisjointRangeIter<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum RangeCompareResult {
+pub enum RangeCompareResult {
     LessThanNoOverlap,
     OverlapUpper,
     Contained,
@@ -158,6 +165,12 @@ pub struct Range {
     max: usize,
     min_incl: usize,
     max_incl: usize,
+}
+
+impl Range {
+    pub fn compare(r1: &Range, r2: &Range) -> RangeCompareResult {
+        r1.compare_with(r2)
+    }
 }
 
 impl Range {
@@ -401,6 +414,22 @@ mod tests {
         assert!(!dr.includes(201));
         assert!(!dr.includes(3));
         assert!(!dr.includes(30000));
+    }
+
+    #[test]
+    fn lookup_range() {
+        let mut dr = DisjointRange::new(RangeMode::EndExclusive);
+
+        insert_ranges(&mut dr, &[[100, 200], [300, 4500]]);
+
+        let found_fst = dr.lookup(199).unwrap();
+        assert_range_min_max(found_fst, 100, 200);
+
+        assert!(dr.lookup(200).is_none());
+        assert!(dr.lookup(248).is_none());
+
+        let found_snd = dr.lookup(344).unwrap();
+        assert_range_min_max(found_snd, 300, 4500);
     }
 
     fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
