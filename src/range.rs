@@ -496,4 +496,14 @@ mod tests {
         quickcheck(prop_range_eq_self as fn(Range) -> bool);
         quickcheck(prop_comp_eq as fn(Range, Range) -> TestResult);
     }
+
+    #[quickcheck]
+    fn test_range_less_than_no_overlap(r1: Range, r2: Range) -> TestResult {
+        match Range::compare(&r1, &r2) {
+            RangeCompareResult::LessThanNoOverlap => {
+                TestResult::from_bool(r1.max_incl < r2.min_incl)
+            }
+            _ => TestResult::discard(),
+        }
+    }
 }
