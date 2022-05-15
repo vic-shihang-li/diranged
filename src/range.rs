@@ -439,4 +439,23 @@ mod tests {
 
         quickcheck(prop_max_incl_ge_min_incl as fn(usize, usize, RangeMode) -> bool);
     }
+
+    #[test]
+    fn test_includes() {
+        fn prop_included_value_within_incl_bounds(
+            min: usize,
+            max: usize,
+            mode: RangeMode,
+            value: usize,
+        ) -> bool {
+            match Range::new(min, max, mode) {
+                Err(_) => true,
+                Ok(r) => r.includes(value) == (value >= r.min_incl && value <= r.max_incl),
+            }
+        }
+
+        quickcheck(
+            prop_included_value_within_incl_bounds as fn(usize, usize, RangeMode, usize) -> bool,
+        );
+    }
 }
