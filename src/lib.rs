@@ -1,15 +1,27 @@
+//! A disjoint range implementation.
+
+#![warn(missing_docs)]
+
+/// An explanation of why an overlap error occurred while inserting to a
+/// [`DisjointRange`].
 #[derive(Debug)]
-pub struct OverlapContext {
+pub struct OverlapError {
     kind: RangeCompareResult,
     other: Range,
 }
 
+/// Possible errors when inserting a range to a [`DisjointRange`].
 #[derive(Debug)]
 pub enum AddError {
-    OverlapRange(OverlapContext),
+    /// Insertion erred because the range to insert overlaps with an existing
+    /// range in [`DisjointRange`].
+    OverlapRange(OverlapError),
+    /// Insertion failed because the provided parameters does not form a vaild
+    /// range (e.g., when the start value is greater than the end value).
     BadRange,
 }
 
+/// An enumeration of inclusive / exclusiveness on both ends of a range.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum RangeMode {
     /// Range where the start and end are inclusive (i.e., [start..end]).
@@ -24,12 +36,28 @@ pub enum RangeMode {
     EndExclusive,
 }
 
+/// A data structure holding a disjoint set of ranges.
+///
+/// The following code snippet represents a set of ranges:
+///
+/// ```rust
+/// use drng::{DisjointRange, RangeMode};
+/// let mut dr = DisjointRange::new(RangeMode::Inclusive);
+///
+/// // not drawn to scale
+/// // 0.......[35..90][91..110]..[115, 120]
+///
+/// dr.add(35, 90).unwrap();
+/// dr.add(91, 110).unwrap();
+/// dr.add(115, 120).unwrap();
+/// ```
 pub struct DisjointRange {
     ranges: Vec<Range>,
     mode: RangeMode,
 }
 
 impl DisjointRange {
+    /// Creates a new [`DisjointRange`].
     pub fn new(mode: RangeMode) -> Self {
         Self {
             ranges: Vec::new(),
@@ -37,6 +65,7 @@ impl DisjointRange {
         }
     }
 
+    /// Adds a range to this [`DisjointRange`].
     pub fn add(self: &mut Self, min: usize, max: usize) -> Result<(), AddError> {
         match Range::new(min, max, self.mode) {
             Err(_) => Err(AddError::BadRange),
@@ -49,7 +78,7 @@ impl DisjointRange {
                             return Ok(());
                         }
                         r => {
-                            return Err(AddError::OverlapRange(OverlapContext {
+                            return Err(AddError::OverlapRange(OverlapError {
                                 kind: r,
                                 other: *range,
                             }))
@@ -64,11 +93,13 @@ impl DisjointRange {
         }
     }
 
+    /// Iterates this [`DisjointRange`] in range-ascending order.
     pub fn iter(self: &Self) -> DisjointRangeIter {
         DisjointRangeIter::new(self)
     }
 }
 
+/// Iterates a [`DisjointRange`].
 pub struct DisjointRangeIter<'a> {
     dr: &'a DisjointRange,
     curr: usize,
@@ -105,11 +136,14 @@ enum RangeCompareResult {
     GreaterNoOverlap,
 }
 
+/// An enumeration of possible bad [`Range`] initialization arguments.
 #[derive(Debug)]
 pub enum BadRange {
+    /// Errs when the provided min value is greater than the max value.
     MinGreaterThanMax,
 }
 
+/// A range is a pair of min and max values.
 #[derive(Copy, Clone, Debug)]
 pub struct Range {
     min: usize,
@@ -119,6 +153,7 @@ pub struct Range {
 }
 
 impl Range {
+    /// Constructs a new [`Range`].
     pub fn new(min: usize, max: usize, mode: RangeMode) -> Result<Self, BadRange> {
         let new_inclusive = |min_incl: usize, max_incl: usize| {
             if min_incl > max_incl {
@@ -141,10 +176,12 @@ impl Range {
         }
     }
 
+    /// Retrieves the min value of this range.
     pub fn min(&self) -> usize {
         self.min
     }
 
+    /// Retrieves the max value of this range.
     pub fn max(&self) -> usize {
         self.max
     }
