@@ -506,4 +506,16 @@ mod tests {
             _ => TestResult::discard(),
         }
     }
+
+    #[quickcheck]
+    fn test_overlap_lower(r1: Range, r2: Range) -> TestResult {
+        match Range::compare(&r1, &r2) {
+            RangeCompareResult::OverlapLower => TestResult::from_bool(
+                r1.min_incl < r2.min_incl
+                    && r1.max_incl >= r2.min_incl
+                    && r1.min_incl <= r2.max_incl,
+            ),
+            _ => TestResult::discard(),
+        }
+    }
 }
