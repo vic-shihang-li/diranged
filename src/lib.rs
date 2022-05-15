@@ -50,6 +50,9 @@ pub enum RangeMode {
 /// dr.add(35, 90).unwrap();
 /// dr.add(91, 110).unwrap();
 /// dr.add(115, 120).unwrap();
+///
+/// assert!(dr.includes(35));
+/// assert!(!dr.includes(113));
 /// ```
 pub struct DisjointRange {
     ranges: Vec<Range>,
@@ -91,6 +94,11 @@ impl DisjointRange {
                 Ok(())
             }
         }
+    }
+
+    /// Checks whether the given value falls into one of the ranges.
+    pub fn includes(&mut self, value: usize) -> bool {
+        self.ranges.iter().find(|r| r.includes(value)).is_some()
     }
 
     /// Iterates this [`DisjointRange`] in range-ascending order.
@@ -192,6 +200,10 @@ impl Range {
 
     fn max_incl(&self) -> usize {
         self.max_incl
+    }
+
+    fn includes(&self, value: usize) -> bool {
+        value >= self.min_incl && value <= self.max_incl
     }
 
     fn compare_with(&self, other: &Range) -> RangeCompareResult {
@@ -375,6 +387,20 @@ mod tests {
                 [211, 212],
             ],
         );
+    }
+
+    #[test]
+    fn find_value_in_range() {
+        let mut dr = DisjointRange::new(RangeMode::EndExclusive);
+
+        dr.add(100, 200).unwrap();
+        assert!(dr.includes(100));
+        assert!(dr.includes(105));
+        assert!(dr.includes(199));
+        assert!(!dr.includes(200));
+        assert!(!dr.includes(201));
+        assert!(!dr.includes(3));
+        assert!(!dr.includes(30000));
     }
 
     fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
