@@ -530,4 +530,36 @@ mod tests {
             _ => TestResult::discard(),
         }
     }
+
+    #[quickcheck]
+    fn test_range_compare_contains(r1: Range, r2: Range) -> TestResult {
+        match Range::compare(&r1, &r2) {
+            RangeCompareResult::Contains => TestResult::from_bool(
+                !(r1.min_incl == r2.min_incl && r1.max_incl == r2.max_incl)
+                    && r1.min_incl <= r2.min_incl
+                    && r1.max_incl >= r2.max_incl,
+            ),
+            _ => TestResult::discard(),
+        }
+    }
+
+    #[quickcheck]
+    fn test_range_compare_contains_inverse_is_contained(r1: Range, r2: Range) -> TestResult {
+        match Range::compare(&r1, &r2) {
+            RangeCompareResult::Contains => {
+                TestResult::from_bool(Range::compare(&r2, &r1) == RangeCompareResult::Contained)
+            }
+            _ => TestResult::discard(),
+        }
+    }
+
+    #[quickcheck]
+    fn test_range_compare_contained_inverse_is_contains(r1: Range, r2: Range) -> TestResult {
+        match Range::compare(&r1, &r2) {
+            RangeCompareResult::Contained => {
+                TestResult::from_bool(Range::compare(&r2, &r1) == RangeCompareResult::Contains)
+            }
+            _ => TestResult::discard(),
+        }
+    }
 }
