@@ -152,6 +152,36 @@ impl<'a> Iterator for DisjointRangeIter<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use quickcheck::{quickcheck, TestResult};
+
+    #[quickcheck]
+    fn prop_add_valid_range(min: usize, max: usize) -> TestResult {
+        let mut dr = DisjointRange::new(RangeMode::Inclusive);
+        match dr.add(min, max) {
+            Ok(_) => TestResult::from_bool(min <= max),
+            Err(_) => TestResult::discard(),
+        }
+    }
+
+    #[quickcheck]
+    fn prop_add_valid_ranges(ranges: Vec<(usize, usize)>) -> TestResult {
+        if ranges.len() < 10_000 {
+            return TestResult::discard();
+        }
+
+        let mut dr = DisjointRange::new(RangeMode::Inclusive);
+        for (min, max) in ranges {
+            if let Err(_) = dr.add(min, max) {
+                return TestResult::discard();
+            }
+        }
+
+        TestResult::from_bool(
+            dr.iter()
+                .zip(dr.iter().skip(1))
+                .all(|(prev, curr)| curr.min() > prev.max()),
+        )
+    }
 
     #[test]
     fn create_basic_dr() {
