@@ -153,6 +153,7 @@ impl<'a> Iterator for DisjointRangeIter<'a> {
 mod tests {
     use super::*;
     use quickcheck::{quickcheck, TestResult};
+    use rand::{thread_rng, Rng};
 
     #[quickcheck]
     fn prop_add_valid_range(min: usize, max: usize) -> TestResult {
@@ -181,6 +182,26 @@ mod tests {
                 .zip(dr.iter().skip(1))
                 .all(|(prev, curr)| curr.min() > prev.max()),
         )
+    }
+
+    #[quickcheck]
+    fn prop_find_range_value(min: usize, max: usize) -> TestResult {
+        let mut dr = DisjointRange::new(RangeMode::Inclusive);
+        match dr.add(min, max) {
+            Err(_) => TestResult::discard(),
+            Ok(_) => {
+                if max == usize::MAX {
+                    return TestResult::discard();
+                }
+                const NUM_SAMPLES: usize = 100;
+                let mut rng = thread_rng();
+                TestResult::from_bool(
+                    (0..NUM_SAMPLES)
+                        .map(|_| rng.gen_range(min..(max + 1)))
+                        .all(|x| dr.lookup(x).is_some()),
+                )
+            }
+        }
     }
 
     #[test]
