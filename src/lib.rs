@@ -171,6 +171,25 @@ impl<'a, R: Range> Iterator for DisjointRangeIter<'a, R> {
 }
 
 #[cfg(test)]
+use quickcheck::{Arbitrary, Gen};
+#[cfg(test)]
+use rand::Rng;
+
+#[cfg(test)]
+impl Arbitrary for RangeMode {
+    fn arbitrary(_g: &mut Gen) -> RangeMode {
+        let num: usize = rand::thread_rng().gen_range(0..3);
+        match num {
+            0 => RangeMode::Inclusive,
+            1 => RangeMode::Exclusive,
+            2 => RangeMode::StartExclusive,
+            3 => RangeMode::EndExclusive,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use quickcheck::{quickcheck, TestResult};

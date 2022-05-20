@@ -91,3 +91,127 @@ impl Range for SimpleRange {
         value >= self.min_incl && value <= self.max_incl
     }
 }
+
+#[cfg(test)]
+use quickcheck::{Arbitrary, Gen};
+
+#[cfg(test)]
+impl Arbitrary for SimpleRange {
+    fn arbitrary(g: &mut Gen) -> SimpleRange {
+        loop {
+            match SimpleRange::new(
+                usize::arbitrary(g),
+                usize::arbitrary(g),
+                RangeMode::arbitrary(g),
+            ) {
+                Err(_) => continue,
+                Ok(r) => return r,
+            };
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quickcheck::quickcheck;
+    use quickcheck::TestResult;
+
+    #[test]
+    fn create_inclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match SimpleRange::new_inclusive(min, max) {
+                Ok(_) => min <= max,
+                Err(_) => min > max,
+            }
+        }
+
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn create_exclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match SimpleRange::new_exclusive(min, max) {
+                Ok(_) => min + 1 <= max - 1,
+                Err(_) => max < 2 || min > max - 2,
+            }
+        }
+
+        assert_eq!(
+            SimpleRange::new_exclusive(usize::MAX, 1).unwrap_err(),
+            BadRange::InclusiveMinOverflows
+        );
+        assert_eq!(
+            SimpleRange::new_exclusive(0, 0).unwrap_err(),
+            BadRange::InclusiveMaxUnderflows
+        );
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn create_start_exclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match SimpleRange::new_start_exclusive(min, max) {
+                Ok(_) => min + 1 <= max,
+                Err(_) => min == usize::MAX || min + 1 > max,
+            }
+        }
+
+        assert_eq!(
+            SimpleRange::new_start_exclusive(usize::MAX, 1).unwrap_err(),
+            BadRange::InclusiveMinOverflows
+        );
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn create_end_exclusive_ranges() {
+        fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
+            match SimpleRange::new_end_exclusive(min, max) {
+                Ok(_) => min <= max - 1,
+                Err(_) => max == 0 || min > max - 1,
+            }
+        }
+
+        assert_eq!(
+            SimpleRange::new_end_exclusive(0, 0).unwrap_err(),
+            BadRange::InclusiveMaxUnderflows
+        );
+        quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
+    }
+
+    #[test]
+    fn verify_inclusive_bounds() {
+        fn prop_max_incl_ge_min_incl(min: usize, max: usize, mode: RangeMode) -> TestResult {
+            match SimpleRange::new(min, max, mode) {
+                Ok(r) => TestResult::from_bool(r.max_incl() >= r.min_incl()),
+                Err(_) => TestResult::discard(),
+            }
+        }
+
+        quickcheck(prop_max_incl_ge_min_incl as fn(usize, usize, RangeMode) -> TestResult);
+    }
+
+    #[test]
+    fn test_includes() {
+        fn prop_included_value_within_incl_bounds(
+            min: usize,
+            max: usize,
+            mode: RangeMode,
+            value: usize,
+        ) -> TestResult {
+            match SimpleRange::new(min, max, mode) {
+                Err(_) => TestResult::discard(),
+                Ok(r) => TestResult::from_bool(
+                    r.includes(value) == (value >= r.min_incl() && value <= r.max_incl()),
+                ),
+            }
+        }
+
+        quickcheck(
+            prop_included_value_within_incl_bounds
+                as fn(usize, usize, RangeMode, usize) -> TestResult,
+        );
+    }
+}
