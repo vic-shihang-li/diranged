@@ -241,15 +241,24 @@ pub fn range_compare<R1: Range, R2: Range>(r1: &R1, r2: &R2) -> RangeCompareResu
     unreachable!("Non-exhaustive comparison!")
 }
 
+/// Specifies the necessary functionalities of a Range.
 pub trait Range {
     /// Retrieves the min value of this range.
+    ///
+    /// Depending on whether this range is start inclusive, this min value may
+    /// or may not equal to the inclusive min value.
     fn min(&self) -> usize;
 
     /// Retrieves the max value of this range.
+    ///
+    /// Depending on whether this range is end inclusive, this max value may
+    /// or may not equal to the inclusive max value.
     fn max(&self) -> usize;
 
+    /// Retrieves the inclusive min value of this range.
     fn min_incl(&self) -> usize;
 
+    /// Retrieves the inclusive max value of this range.
     fn max_incl(&self) -> usize;
 
     /// Checks whether a value is part of this range.
