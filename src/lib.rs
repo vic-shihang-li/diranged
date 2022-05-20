@@ -172,7 +172,7 @@ mod tests {
 
         let mut dr = DisjointRange::new(RangeMode::Inclusive);
         for (min, max) in ranges {
-            if let Err(_) = dr.add(min, max) {
+            if dr.add(min, max).is_err() {
                 return TestResult::discard();
             }
         }
@@ -356,7 +356,7 @@ mod tests {
     fn insert_ranges(dr: &mut DisjointRange, seq: &[[usize; 2]]) {
         seq.iter().for_each(|[min, max]| {
             dr.add(*min, *max)
-                .expect(format!("failed to insert min: {}, max: {}", min, max).as_str());
+                .unwrap_or_else(|_| panic!("failed to insert min: {}, max: {}", min, max));
         })
     }
 
