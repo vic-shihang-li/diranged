@@ -1,5 +1,7 @@
+mod payload_range;
 mod simple_range;
 
+pub use payload_range::PayloadRange;
 pub use simple_range::SimpleRange;
 
 /// An enumeration of possible range comparison outputs.
