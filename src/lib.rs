@@ -9,7 +9,7 @@ extern crate quickcheck;
 extern crate quickcheck_macros;
 
 mod range;
-pub use range::{Range, RangeCompareResult};
+pub use range::{range_compare, Range, RangeCompareResult, SimpleRange};
 
 /// An explanation of why an overlap error occurred while inserting to a
 /// [`DisjointRange`].
@@ -17,7 +17,6 @@ pub use range::{Range, RangeCompareResult};
 #[derive(Debug)]
 pub struct OverlapError {
     kind: RangeCompareResult,
-    other: Range,
 }
 
 /// Possible errors when inserting a range to a [`DisjointRange`].
@@ -65,85 +64,106 @@ pub enum RangeMode {
 /// assert!(!dr.includes(113));
 /// ```
 pub struct DisjointRange {
-    ranges: Vec<Range>,
+    inner: DisjointRangeInner<SimpleRange>,
     mode: RangeMode,
 }
 
 impl DisjointRange {
-    /// Creates a new [`DisjointRange`].
+    /// Constructs a new [`DisjointRange`].
     pub fn new(mode: RangeMode) -> Self {
         Self {
-            ranges: Vec::new(),
+            inner: DisjointRangeInner::default(),
             mode,
         }
     }
 
     /// Adds a range to this [`DisjointRange`].
     pub fn add(&mut self, min: usize, max: usize) -> Result<(), AddError> {
-        match Range::new(min, max, self.mode) {
+        match SimpleRange::new(min, max, self.mode) {
             Err(_) => Err(AddError::BadRange),
-            Ok(range_to_insert) => {
-                for (i, range) in self.ranges.iter().enumerate() {
-                    match range_to_insert.compare_with(range) {
-                        RangeCompareResult::GreaterNoOverlap => continue,
-                        RangeCompareResult::LessThanNoOverlap => {
-                            self.ranges.insert(i, range_to_insert);
-                            return Ok(());
-                        }
-                        r => {
-                            return Err(AddError::OverlapRange(OverlapError {
-                                kind: r,
-                                other: *range,
-                            }))
-                        }
-                    }
-                }
-
-                self.ranges.push(range_to_insert);
-
-                Ok(())
-            }
+            Ok(r) => self.inner.add(r),
         }
     }
 
     /// Checks whether the given value falls into one of the ranges.
     pub fn includes(&self, value: usize) -> bool {
-        self.lookup(value).is_some()
+        self.inner.includes(value)
     }
 
     /// Checks if the data structure contains the provided value.
     ///
     /// If yes, return the range that contains this value.
-    pub fn lookup(&self, value: usize) -> Option<&Range> {
-        self.ranges.iter().find(|r| r.includes(value))
+    pub fn lookup(&self, value: usize) -> Option<&SimpleRange> {
+        self.inner.lookup(value)
     }
 
     /// Iterates this [`DisjointRange`] in range-ascending order.
-    pub fn iter(&self) -> DisjointRangeIter {
+    pub fn iter(&self) -> DisjointRangeIter<'_, SimpleRange> {
+        self.inner.iter()
+    }
+}
+
+struct DisjointRangeInner<R: Range> {
+    ranges: Vec<R>,
+}
+
+impl<R: Range> Default for DisjointRangeInner<R> {
+    fn default() -> Self {
+        Self { ranges: Vec::new() }
+    }
+}
+
+impl<R: Range> DisjointRangeInner<R> {
+    fn add(&mut self, range: R) -> Result<(), AddError> {
+        for (i, range_curr) in self.ranges.iter().enumerate() {
+            match range_compare(&range, range_curr) {
+                RangeCompareResult::GreaterNoOverlap => continue,
+                RangeCompareResult::LessThanNoOverlap => {
+                    self.ranges.insert(i, range);
+                    return Ok(());
+                }
+                r => return Err(AddError::OverlapRange(OverlapError { kind: r })),
+            }
+        }
+
+        self.ranges.push(range);
+
+        Ok(())
+    }
+
+    fn includes(&self, value: usize) -> bool {
+        self.lookup(value).is_some()
+    }
+
+    fn lookup(&self, value: usize) -> Option<&R> {
+        self.ranges.iter().find(|r| r.includes(value))
+    }
+
+    fn iter(&self) -> DisjointRangeIter<'_, R> {
         DisjointRangeIter::new(self)
     }
 }
 
 /// Iterates a [`DisjointRange`].
-pub struct DisjointRangeIter<'a> {
-    dr: &'a DisjointRange,
+pub struct DisjointRangeIter<'a, R: Range> {
+    dr: &'a DisjointRangeInner<R>,
     curr: usize,
 }
 
-impl<'a> DisjointRangeIter<'a> {
-    fn new(dr: &'a DisjointRange) -> DisjointRangeIter<'a> {
+impl<'a, R: Range> DisjointRangeIter<'a, R> {
+    fn new(dr: &'a DisjointRangeInner<R>) -> DisjointRangeIter<'a, R> {
         Self { dr, curr: 0 }
     }
 }
 
-impl<'a> Iterator for DisjointRangeIter<'a> {
-    type Item = Range;
+impl<'a, R: Range> Iterator for DisjointRangeIter<'a, R> {
+    type Item = &'a R;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.dr.ranges.get(self.curr) {
             Some(range) => {
                 self.curr += 1;
-                Some(*range)
+                Some(range)
             }
             None => None,
         }
@@ -382,14 +402,14 @@ mod tests {
                         got
                     ),
                     Some([expected_min, expected_max]) => {
-                        assert_range_min_max(&got, *expected_min, *expected_max)
+                        assert_range_min_max(got, *expected_min, *expected_max)
                     }
                 },
             }
         }
     }
 
-    fn assert_range_min_max(range: &Range, min: usize, max: usize) {
+    fn assert_range_min_max(range: &dyn Range, min: usize, max: usize) {
         assert_eq!(range.min(), min);
         assert_eq!(range.max(), max);
     }

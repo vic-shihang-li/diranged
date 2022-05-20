@@ -8,17 +8,17 @@ use crate::RangeMode;
 /// differ, even though the ranges have the same min and max values.
 ///
 /// ```rust
-/// use drng::{Range, RangeMode, RangeCompareResult::*};
+/// use drng::{SimpleRange, RangeMode, range_compare, RangeCompareResult::*};
 ///
-/// let r1 = Range::new(100, 200, RangeMode::Inclusive).unwrap();
-/// let r2 = Range::new(200, 300, RangeMode::Inclusive).unwrap();
-/// let r2_start_excl = Range::new(200, 300, RangeMode::StartExclusive).unwrap();
+/// let r1 = SimpleRange::new(100, 200, RangeMode::Inclusive).unwrap();
+/// let r2 = SimpleRange::new(200, 300, RangeMode::Inclusive).unwrap();
+/// let r2_start_excl = SimpleRange::new(200, 300, RangeMode::StartExclusive).unwrap();
 ///
 /// // r1 overlaps with the lower part of r2
-/// assert_eq!(Range::compare(&r1, &r2), OverlapLower);
+/// assert_eq!(range_compare(&r1, &r2), OverlapLower);
 ///
 /// // r1 is strictly lower than r2_start_excl
-/// assert_eq!(Range::compare(&r1, &r2_start_excl), LessThanNoOverlap);
+/// assert_eq!(range_compare(&r1, &r2_start_excl), LessThanNoOverlap);
 /// ```
 #[derive(Debug, PartialEq, Eq)]
 pub enum RangeCompareResult {
@@ -31,12 +31,12 @@ pub enum RangeCompareResult {
     /// ```
     ///
     /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult::*};
+    /// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult::*};
     ///
-    /// let first  = Range::new(10, 20, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(200, 300, RangeMode::Inclusive).unwrap();
+    /// let first  = SimpleRange::new(10, 20, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(200, 300, RangeMode::Inclusive).unwrap();
     ///
-    /// assert_eq!(Range::compare(&first, &second), LessThanNoOverlap);
+    /// assert_eq!(range_compare(&first, &second), LessThanNoOverlap);
     /// ```
     LessThanNoOverlap,
     /// The first range overlaps with the lower part of the second range.
@@ -51,15 +51,15 @@ pub enum RangeCompareResult {
     /// the second. In this case, the first one "contains" the second.
     ///
     /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult::*};
+    /// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult::*};
     ///
-    /// let second = Range::new(200, 300, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(200, 300, RangeMode::Inclusive).unwrap();
     ///
-    /// let first  = Range::new(100, 299, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), OverlapLower);
+    /// let first  = SimpleRange::new(100, 299, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), OverlapLower);
     ///
-    /// let first  = Range::new(100, 300, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), Contains);
+    /// let first  = SimpleRange::new(100, 300, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), Contains);
     /// ```
     OverlapLower,
     /// The first range is strictly smaller than the second range.
@@ -70,18 +70,18 @@ pub enum RangeCompareResult {
     /// ```
     ///
     /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult::*};
+    /// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult::*};
     ///
-    /// let first = Range::new(33, 35, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(10, 990, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), Contained);
-    /// assert_eq!(Range::compare(&second, &first), Contains);
+    /// let first = SimpleRange::new(33, 35, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(10, 990, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), Contained);
+    /// assert_eq!(range_compare(&second, &first), Contains);
     ///
     /// // the first and second range share the same starting point
-    /// let first = Range::new(10, 35, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(10, 990, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), Contained);
-    /// assert_eq!(Range::compare(&second, &first), Contains);
+    /// let first = SimpleRange::new(10, 35, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(10, 990, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), Contained);
+    /// assert_eq!(range_compare(&second, &first), Contains);
     /// ```
     Contained,
     /// The second range is strictly larger than the first range.
@@ -92,18 +92,18 @@ pub enum RangeCompareResult {
     /// ```
     ///
     /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult::*};
+    /// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult::*};
     ///
-    /// let first = Range::new(10, 990, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(33, 35, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), Contains);
-    /// assert_eq!(Range::compare(&second, &first), Contained);
+    /// let first = SimpleRange::new(10, 990, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(33, 35, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), Contains);
+    /// assert_eq!(range_compare(&second, &first), Contained);
     ///
     /// // the first and second range share the same starting point
-    /// let first = Range::new(10, 990, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(10, 35, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), Contains);
-    /// assert_eq!(Range::compare(&second, &first), Contained);
+    /// let first = SimpleRange::new(10, 990, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(10, 35, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), Contains);
+    /// assert_eq!(range_compare(&second, &first), Contained);
     /// ```
     Contains,
     /// The first range and the second range are range-equal.
@@ -117,18 +117,18 @@ pub enum RangeCompareResult {
     /// even though their min and max value are not exactly the same.
     ///
     /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult::*};
+    /// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult::*};
     ///
-    /// let first = Range::new(10, 15, RangeMode::Inclusive).unwrap();
-    /// let first_end_excl = Range::new(10, 16, RangeMode::EndExclusive).unwrap();
-    /// let first_start_excl = Range::new(9, 15, RangeMode::StartExclusive).unwrap();
-    /// let first_excl = Range::new(9, 16, RangeMode::Exclusive).unwrap();
-    /// let second = Range::new(10, 15, RangeMode::Inclusive).unwrap();
+    /// let first = SimpleRange::new(10, 15, RangeMode::Inclusive).unwrap();
+    /// let first_end_excl = SimpleRange::new(10, 16, RangeMode::EndExclusive).unwrap();
+    /// let first_start_excl = SimpleRange::new(9, 15, RangeMode::StartExclusive).unwrap();
+    /// let first_excl = SimpleRange::new(9, 16, RangeMode::Exclusive).unwrap();
+    /// let second = SimpleRange::new(10, 15, RangeMode::Inclusive).unwrap();
     ///
-    /// assert_eq!(Range::compare(&first, &second), Equal);
-    /// assert_eq!(Range::compare(&first_end_excl, &second), Equal);
-    /// assert_eq!(Range::compare(&first_start_excl, &second), Equal);
-    /// assert_eq!(Range::compare(&first_excl, &second), Equal);
+    /// assert_eq!(range_compare(&first, &second), Equal);
+    /// assert_eq!(range_compare(&first_end_excl, &second), Equal);
+    /// assert_eq!(range_compare(&first_start_excl, &second), Equal);
+    /// assert_eq!(range_compare(&first_excl, &second), Equal);
     /// ```
     Equal,
     /// The first range overlaps with the upper part of the second range.
@@ -139,11 +139,11 @@ pub enum RangeCompareResult {
     /// ```
     ///
     /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult};
+    /// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult};
     ///
-    /// let first = Range::new(13, 22, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(10, 15, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), RangeCompareResult::OverlapUpper);
+    /// let first = SimpleRange::new(13, 22, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(10, 15, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), RangeCompareResult::OverlapUpper);
     /// ```
     OverlapUpper,
     /// The first range is strictly greater than the second range. They do
@@ -155,13 +155,101 @@ pub enum RangeCompareResult {
     /// ```
     ///
     /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult::*};
+    /// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult::*};
     ///
-    /// let first = Range::new(20, 25, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(10, 15, RangeMode::Inclusive).unwrap();
-    /// assert_eq!(Range::compare(&first, &second), GreaterNoOverlap);
+    /// let first = SimpleRange::new(20, 25, RangeMode::Inclusive).unwrap();
+    /// let second = SimpleRange::new(10, 15, RangeMode::Inclusive).unwrap();
+    /// assert_eq!(range_compare(&first, &second), GreaterNoOverlap);
     /// ```
     GreaterNoOverlap,
+}
+
+/// Compares two ranges.
+///
+/// ```
+/// use drng::{SimpleRange, range_compare, RangeMode, RangeCompareResult::*};
+///
+/// let first  = SimpleRange::new(10, 20, RangeMode::Inclusive).unwrap();
+/// let second = SimpleRange::new(15, 33, RangeMode::Inclusive).unwrap();
+///
+/// assert_eq!(range_compare(&first, &second), OverlapLower);
+/// ```
+///
+/// For more documentation, see [`RangeCompareResult`].
+pub fn range_compare<R1: Range, R2: Range>(r1: &R1, r2: &R2) -> RangeCompareResult {
+    let self_min_incl = r1.min_incl();
+    let self_max_incl = r1.max_incl();
+    let other_min_incl = r2.min_incl();
+    let other_max_incl = r2.max_incl();
+
+    if self_min_incl == other_min_incl && self_max_incl == other_max_incl {
+        return RangeCompareResult::Equal;
+    }
+
+    if self_min_incl < other_min_incl {
+        // self:  [....]
+        // other:        [......]
+        if self_max_incl < other_min_incl {
+            return RangeCompareResult::LessThanNoOverlap;
+        }
+        // self:  [....]
+        // other:    [.......]
+        if other_min_incl <= self_max_incl && self_max_incl < other_max_incl {
+            return RangeCompareResult::OverlapLower;
+        }
+        // self:  [...........]
+        // other:    [......]
+        return RangeCompareResult::Contains;
+    }
+
+    if self_min_incl == other_min_incl {
+        // self:  [.....]
+        // other: [..........]
+        if self_max_incl < other_max_incl {
+            return RangeCompareResult::Contained;
+        }
+        // self:  [..........]
+        // other: [..........]
+        if self_max_incl == other_max_incl {
+            return RangeCompareResult::Equal;
+        }
+        // self:  [...............]
+        // other: [..........]
+        return RangeCompareResult::Contains;
+    }
+
+    if self_min_incl > other_min_incl {
+        // self:        [.....]
+        // other: [...]
+        if other_max_incl < self_min_incl {
+            return RangeCompareResult::GreaterNoOverlap;
+        }
+        // self:        [.....]
+        // other: [.......]
+        if other_max_incl >= self_min_incl && other_max_incl < self_max_incl {
+            return RangeCompareResult::OverlapUpper;
+        }
+        // self:        [.....]
+        // other: [............]
+        return RangeCompareResult::Contained;
+    }
+
+    unreachable!("Non-exhaustive comparison!")
+}
+
+pub trait Range {
+    /// Retrieves the min value of this range.
+    fn min(&self) -> usize;
+
+    /// Retrieves the max value of this range.
+    fn max(&self) -> usize;
+
+    fn min_incl(&self) -> usize;
+
+    fn max_incl(&self) -> usize;
+
+    /// Checks whether a value is part of this range.
+    fn includes(&self, value: usize) -> bool;
 }
 
 /// An enumeration of possible bad [`Range`] initialization arguments.
@@ -177,33 +265,15 @@ pub enum BadRange {
 
 /// A range is a pair of min and max values.
 #[derive(Copy, Clone, Debug)]
-pub struct Range {
+pub struct SimpleRange {
     min: usize,
     max: usize,
     min_incl: usize,
     max_incl: usize,
 }
 
-impl Range {
-    /// Compares two ranges.
-    ///
-    /// ```
-    /// use drng::{Range, RangeMode, RangeCompareResult::*};
-    ///
-    /// let first  = Range::new(10, 20, RangeMode::Inclusive).unwrap();
-    /// let second = Range::new(15, 33, RangeMode::Inclusive).unwrap();
-    ///
-    /// assert_eq!(Range::compare(&first, &second), OverlapLower);
-    /// ```
-    ///
-    /// For more documentation, see [`RangeCompareResult`].
-    pub fn compare(r1: &Range, r2: &Range) -> RangeCompareResult {
-        r1.compare_with(r2)
-    }
-}
-
-impl Range {
-    /// Constructs a new [`Range`].
+impl SimpleRange {
+    /// Constructs a new [`SimpleRange`].
     pub fn new(min: usize, max: usize, mode: RangeMode) -> Result<Self, BadRange> {
         let new_inclusive = |min_incl: usize, max_incl: usize| {
             if min_incl > max_incl {
@@ -241,33 +311,33 @@ impl Range {
     /// Constructs a new [`Range`] where both `min` and `max` are part of the
     /// range.
     pub fn new_inclusive(min: usize, max: usize) -> Result<Self, BadRange> {
-        Range::new(min, max, RangeMode::Inclusive)
+        SimpleRange::new(min, max, RangeMode::Inclusive)
     }
 
     /// Constructs a new [`Range`] where neither `min` nor `max` are part of
     /// the range.
     pub fn new_exclusive(min: usize, max: usize) -> Result<Self, BadRange> {
-        Range::new(min, max, RangeMode::Exclusive)
+        SimpleRange::new(min, max, RangeMode::Exclusive)
     }
 
     /// Constructs a new [`Range`] where `min` is not part of the range, but
     /// `max` is.
     pub fn new_start_exclusive(min: usize, max: usize) -> Result<Self, BadRange> {
-        Range::new(min, max, RangeMode::StartExclusive)
+        SimpleRange::new(min, max, RangeMode::StartExclusive)
     }
 
     /// Constructs a new [`Range`] where `min` is part of the range, but not `max`.
     pub fn new_end_exclusive(min: usize, max: usize) -> Result<Self, BadRange> {
-        Range::new(min, max, RangeMode::EndExclusive)
+        SimpleRange::new(min, max, RangeMode::EndExclusive)
     }
+}
 
-    /// Retrieves the min value of this range.
-    pub fn min(&self) -> usize {
+impl Range for SimpleRange {
+    fn min(&self) -> usize {
         self.min
     }
 
-    /// Retrieves the max value of this range.
-    pub fn max(&self) -> usize {
+    fn max(&self) -> usize {
         self.max
     }
 
@@ -279,69 +349,8 @@ impl Range {
         self.max_incl
     }
 
-    /// Checks whether a value is part of this range.
-    pub fn includes(&self, value: usize) -> bool {
+    fn includes(&self, value: usize) -> bool {
         value >= self.min_incl && value <= self.max_incl
-    }
-
-    /// Compares this range with another range.
-    pub fn compare_with(&self, other: &Range) -> RangeCompareResult {
-        let other_min_incl = other.min_incl();
-        let other_max_incl = other.max_incl();
-
-        if self.min_incl == other_min_incl && self.max_incl == other_max_incl {
-            return RangeCompareResult::Equal;
-        }
-
-        if self.min_incl < other.min_incl {
-            // self:  [....]
-            // other:        [......]
-            if self.max_incl < other.min_incl {
-                return RangeCompareResult::LessThanNoOverlap;
-            }
-            // self:  [....]
-            // other:    [.......]
-            if other.min_incl <= self.max_incl && self.max_incl < other.max_incl {
-                return RangeCompareResult::OverlapLower;
-            }
-            // self:  [...........]
-            // other:    [......]
-            return RangeCompareResult::Contains;
-        }
-
-        if self.min_incl == other.min_incl {
-            // self:  [.....]
-            // other: [..........]
-            if self.max_incl < other.max_incl {
-                return RangeCompareResult::Contained;
-            }
-            // self:  [..........]
-            // other: [..........]
-            if self.max_incl == other.max_incl {
-                return RangeCompareResult::Equal;
-            }
-            // self:  [...............]
-            // other: [..........]
-            return RangeCompareResult::Contains;
-        }
-
-        if self.min_incl > other.min_incl {
-            // self:        [.....]
-            // other: [...]
-            if other.max_incl < self.min_incl {
-                return RangeCompareResult::GreaterNoOverlap;
-            }
-            // self:        [.....]
-            // other: [.......]
-            if other.max_incl >= self.min_incl && other.max_incl < self.max_incl {
-                return RangeCompareResult::OverlapUpper;
-            }
-            // self:        [.....]
-            // other: [............]
-            return RangeCompareResult::Contained;
-        }
-
-        unreachable!("Non-exhaustive comparison!")
     }
 }
 
@@ -364,10 +373,10 @@ mod tests {
         }
     }
 
-    impl Arbitrary for Range {
-        fn arbitrary(g: &mut Gen) -> Range {
+    impl Arbitrary for SimpleRange {
+        fn arbitrary(g: &mut Gen) -> SimpleRange {
             loop {
-                match Range::new(
+                match SimpleRange::new(
                     usize::arbitrary(g),
                     usize::arbitrary(g),
                     RangeMode::arbitrary(g),
@@ -382,7 +391,7 @@ mod tests {
     #[test]
     fn create_inclusive_ranges() {
         fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
-            match Range::new_inclusive(min, max) {
+            match SimpleRange::new_inclusive(min, max) {
                 Ok(_) => min <= max,
                 Err(_) => min > max,
             }
@@ -394,18 +403,18 @@ mod tests {
     #[test]
     fn create_exclusive_ranges() {
         fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
-            match Range::new_exclusive(min, max) {
+            match SimpleRange::new_exclusive(min, max) {
                 Ok(_) => min + 1 <= max - 1,
                 Err(_) => max < 2 || min > max - 2,
             }
         }
 
         assert_eq!(
-            Range::new_exclusive(usize::MAX, 1).unwrap_err(),
+            SimpleRange::new_exclusive(usize::MAX, 1).unwrap_err(),
             BadRange::InclusiveMinOverflows
         );
         assert_eq!(
-            Range::new_exclusive(0, 0).unwrap_err(),
+            SimpleRange::new_exclusive(0, 0).unwrap_err(),
             BadRange::InclusiveMaxUnderflows
         );
         quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
@@ -414,14 +423,14 @@ mod tests {
     #[test]
     fn create_start_exclusive_ranges() {
         fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
-            match Range::new_start_exclusive(min, max) {
+            match SimpleRange::new_start_exclusive(min, max) {
                 Ok(_) => min + 1 <= max,
                 Err(_) => min == usize::MAX || min + 1 > max,
             }
         }
 
         assert_eq!(
-            Range::new_start_exclusive(usize::MAX, 1).unwrap_err(),
+            SimpleRange::new_start_exclusive(usize::MAX, 1).unwrap_err(),
             BadRange::InclusiveMinOverflows
         );
         quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
@@ -430,14 +439,14 @@ mod tests {
     #[test]
     fn create_end_exclusive_ranges() {
         fn prop_max_greater_than_min(min: usize, max: usize) -> bool {
-            match Range::new_end_exclusive(min, max) {
+            match SimpleRange::new_end_exclusive(min, max) {
                 Ok(_) => min <= max - 1,
                 Err(_) => max == 0 || min > max - 1,
             }
         }
 
         assert_eq!(
-            Range::new_end_exclusive(0, 0).unwrap_err(),
+            SimpleRange::new_end_exclusive(0, 0).unwrap_err(),
             BadRange::InclusiveMaxUnderflows
         );
         quickcheck(prop_max_greater_than_min as fn(usize, usize) -> bool);
@@ -446,7 +455,7 @@ mod tests {
     #[test]
     fn verify_inclusive_bounds() {
         fn prop_max_incl_ge_min_incl(min: usize, max: usize, mode: RangeMode) -> TestResult {
-            match Range::new(min, max, mode) {
+            match SimpleRange::new(min, max, mode) {
                 Ok(r) => TestResult::from_bool(r.max_incl >= r.min_incl),
                 Err(_) => TestResult::discard(),
             }
@@ -463,7 +472,7 @@ mod tests {
             mode: RangeMode,
             value: usize,
         ) -> TestResult {
-            match Range::new(min, max, mode) {
+            match SimpleRange::new(min, max, mode) {
                 Err(_) => TestResult::discard(),
                 Ok(r) => TestResult::from_bool(
                     r.includes(value) == (value >= r.min_incl && value <= r.max_incl),
@@ -479,8 +488,8 @@ mod tests {
 
     #[test]
     fn test_range_compare_eq() {
-        fn prop_comp_eq(r1: Range, r2: Range) -> TestResult {
-            match Range::compare(&r1, &r2) {
+        fn prop_comp_eq(r1: SimpleRange, r2: SimpleRange) -> TestResult {
+            match range_compare(&r1, &r2) {
                 RangeCompareResult::Equal => {
                     let valid = r1.min_incl == r2.min_incl && r1.max_incl == r2.max_incl;
                     TestResult::from_bool(valid)
@@ -489,17 +498,17 @@ mod tests {
             }
         }
 
-        fn prop_range_eq_self(r: Range) -> bool {
-            Range::compare(&r, &r) == RangeCompareResult::Equal
+        fn prop_range_eq_self(r: SimpleRange) -> bool {
+            range_compare(&r, &r) == RangeCompareResult::Equal
         }
 
-        quickcheck(prop_range_eq_self as fn(Range) -> bool);
-        quickcheck(prop_comp_eq as fn(Range, Range) -> TestResult);
+        quickcheck(prop_range_eq_self as fn(SimpleRange) -> bool);
+        quickcheck(prop_comp_eq as fn(SimpleRange, SimpleRange) -> TestResult);
     }
 
     #[quickcheck]
-    fn test_range_less_than_no_overlap(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_less_than_no_overlap(r1: SimpleRange, r2: SimpleRange) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::LessThanNoOverlap => {
                 TestResult::from_bool(r1.max_incl < r2.min_incl)
             }
@@ -508,8 +517,8 @@ mod tests {
     }
 
     #[quickcheck]
-    fn test_range_compare_overlap_lower(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_compare_overlap_lower(r1: SimpleRange, r2: SimpleRange) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::OverlapLower => TestResult::from_bool(
                 r1.min_incl < r2.min_incl
                     && r1.max_incl >= r2.min_incl
@@ -520,8 +529,8 @@ mod tests {
     }
 
     #[quickcheck]
-    fn test_range_compare_contained(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_compare_contained(r1: SimpleRange, r2: SimpleRange) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::Contained => TestResult::from_bool(
                 !(r1.min_incl == r2.min_incl && r1.max_incl == r2.max_incl)
                     && r1.min_incl >= r2.min_incl
@@ -532,8 +541,8 @@ mod tests {
     }
 
     #[quickcheck]
-    fn test_range_compare_contains(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_compare_contains(r1: SimpleRange, r2: SimpleRange) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::Contains => TestResult::from_bool(
                 !(r1.min_incl == r2.min_incl && r1.max_incl == r2.max_incl)
                     && r1.min_incl <= r2.min_incl
@@ -544,28 +553,34 @@ mod tests {
     }
 
     #[quickcheck]
-    fn test_range_compare_contains_inverse_is_contained(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_compare_contains_inverse_is_contained(
+        r1: SimpleRange,
+        r2: SimpleRange,
+    ) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::Contains => {
-                TestResult::from_bool(Range::compare(&r2, &r1) == RangeCompareResult::Contained)
+                TestResult::from_bool(range_compare(&r2, &r1) == RangeCompareResult::Contained)
             }
             _ => TestResult::discard(),
         }
     }
 
     #[quickcheck]
-    fn test_range_compare_contained_inverse_is_contains(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_compare_contained_inverse_is_contains(
+        r1: SimpleRange,
+        r2: SimpleRange,
+    ) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::Contained => {
-                TestResult::from_bool(Range::compare(&r2, &r1) == RangeCompareResult::Contains)
+                TestResult::from_bool(range_compare(&r2, &r1) == RangeCompareResult::Contains)
             }
             _ => TestResult::discard(),
         }
     }
 
     #[quickcheck]
-    fn test_range_compare_overlap_upper(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_compare_overlap_upper(r1: SimpleRange, r2: SimpleRange) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::OverlapUpper => TestResult::from_bool(
                 (r1.min_incl >= r2.min_incl && r1.min_incl <= r2.max_incl)
                     && r1.max_incl > r2.max_incl,
@@ -575,8 +590,8 @@ mod tests {
     }
 
     #[quickcheck]
-    fn test_range_compare_greater_no_overlap(r1: Range, r2: Range) -> TestResult {
-        match Range::compare(&r1, &r2) {
+    fn test_range_compare_greater_no_overlap(r1: SimpleRange, r2: SimpleRange) -> TestResult {
+        match range_compare(&r1, &r2) {
             RangeCompareResult::GreaterNoOverlap => {
                 TestResult::from_bool(r1.min_incl > r2.max_incl)
             }
