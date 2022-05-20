@@ -78,12 +78,12 @@ impl DisjointRange {
     }
 
     /// Adds a range to this [`DisjointRange`].
-    pub fn add(self: &mut Self, min: usize, max: usize) -> Result<(), AddError> {
+    pub fn add(&mut self, min: usize, max: usize) -> Result<(), AddError> {
         match Range::new(min, max, self.mode) {
             Err(_) => Err(AddError::BadRange),
             Ok(range_to_insert) => {
                 for (i, range) in self.ranges.iter().enumerate() {
-                    match range_to_insert.compare_with(&range) {
+                    match range_to_insert.compare_with(range) {
                         RangeCompareResult::GreaterNoOverlap => continue,
                         RangeCompareResult::LessThanNoOverlap => {
                             self.ranges.insert(i, range_to_insert);
@@ -118,7 +118,7 @@ impl DisjointRange {
     }
 
     /// Iterates this [`DisjointRange`] in range-ascending order.
-    pub fn iter(self: &Self) -> DisjointRangeIter {
+    pub fn iter(&self) -> DisjointRangeIter {
         DisjointRangeIter::new(self)
     }
 }
