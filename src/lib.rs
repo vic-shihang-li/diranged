@@ -13,6 +13,7 @@ pub use range::{Range, RangeCompareResult};
 
 /// An explanation of why an overlap error occurred while inserting to a
 /// [`DisjointRange`].
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct OverlapError {
     kind: RangeCompareResult,
